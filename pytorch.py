@@ -18,8 +18,8 @@ loader = transforms.Compose([
                          std=[1,1,1]),
     ])
 unloader = transforms.Compose([
-    transforms.Normalize(mean=[-0.40760392, -0.45795686, -0.48501961], 
-                        std=[1,1,1]),
+    # transforms.Normalize(mean=[-0.40760392, -0.45795686, -0.48501961], 
+    #                     std=[1,1,1]),
     transforms.Lambda(lambda x: x[torch.LongTensor([2,1,0])]), 
     transforms.ToPILImage(),
     ])
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # cnn = models.vgg19(pretrained=True).features.eval()
     cnn = models.vgg19()
     cnn.load_state_dict(torch.load('./model/vgg19-dcbb9e9d.pth'))
-    cnn = cnn.features.eval()
+    cnn = cnn.features.eval().to(device)
    
     style_losses = []
     content_losses = []
