@@ -12,9 +12,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 loader = transforms.Compose([
     # transforms.Resize(128),
-    transforms.ToTensor()])
-unloader = transforms.ToPILImage()
-
+    transforms.ToTensor(),
+    transforms.Lambda(lambda x: x[torch.LongTensor([2,1,0])]),
+    transforms.Normalize(mean=[0.40760392, 0.45795686, 0.48501961], 
+                         std=[1,1,1]),
+    ])
+unloader = transforms.Compose([
+    transforms.Normalize(mean=[-0.40760392, -0.45795686, -0.48501961], 
+                        std=[1,1,1]),
+    transforms.Lambda(lambda x: x[torch.LongTensor([2,1,0])]), 
+    transforms.ToPILImage(),
+    ])
 style_image_path = "./s_img/6.jpg"
 content_image_path = "./c_img/2.jpg"
 output_image_path = "./file/output.jpg"
@@ -22,7 +30,7 @@ output_image_path = "./file/output.jpg"
 def load_image(fp, need_resize=True):
     image = Image.open(fp)
     if need_resize:
-        image = image.resize((256, 256), box=None, reducing_gap=None)
+        image = image.resize((32, 32), box=None, reducing_gap=None)
     # image.show()
     image = loader(image).unsqueeze(0)
     image = image.to(device, torch.float)
@@ -71,9 +79,9 @@ if __name__ == "__main__":
     # input_image = torch.randn(content_image.size(), device=device)
     print(device)
 
-    cnn = models.vgg19(pretrained=True)
-    pre_file = torch.load('C:\\Users\\wwr\\.cache\\torch\\hub\\checkpoints\\vgg19-dcbb9e9d.pth')
-    cnn.load_state_dict(pre_file)
+    # cnn = models.vgg19(pretrained=True).features.eval()
+    cnn = models.vgg19()
+    cnn.load_state_dict(torch.load('./model/vgg19-dcbb9e9d.pth'))
     cnn = cnn.features.eval()
    
     style_losses = []
@@ -112,20 +120,18 @@ if __name__ == "__main__":
             model.add_module("cl1", content_losses[0])
 
     optimizer = optim.LBFGS([input_image.requires_grad_()])
+    style_losses_weight = [3, 2, 1, 1, 1]
     for epoch in range(20):
         def closure():
             input_image.data.clamp_(0, 1)
             optimizer.zero_grad()
             model(input_image)
-            style_loss, content_loss = 0, 0
-            style_loss += style_losses[0].loss * 3
-            for sl in style_losses:
-                style_loss += sl.loss
-            for cl in content_losses:
-                content_loss += cl.loss
+            style_loss = sum(style_losses[i].loss * style_losses_weight[i] 
+                             for i in range(5))
+            content_loss = content_losses[0].loss
             loss = style_loss * 10000000 + content_loss
             loss.backward()
-            print(epoch, style_loss.item(), content_loss.item(), loss.item())
+            print(epoch, style_loss.item()*10000000, content_loss.item(), loss.item())
             return loss.item()
 
 

@@ -41,7 +41,7 @@ for i, grid in enumerate(grids):
 
 # 将处理好的网格拼接回去
 output = np.concatenate([np.concatenate(grids[i:i+grid_size[1]], axis=1) for i in range(0, len(grids), grid_size[1])], axis=0)
-cv2.imwrite("./file/output.jpg", output)
+cv2.imwrite("./file/blur.jpg", output)
 
 # image = cv2.imread('./file/output.jpg')
 # blur = cv2.bilateralFilter(image, 4, 1000, 1000)
